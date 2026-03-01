@@ -1,0 +1,29 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[[package]]
+name = "01-seven-wonders"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "pyxel" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pyxel", specifier = ">=2.7.2" }]
+
+[[package]]
+name = "pyxel"
+version = "2.7.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c5/ab/eed4e722078dbd4fc793d3eb4f5f5ba4d5aaf4917844298024739b20e265/pyxel-2.7.2-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:587ece8ecdb135670ac18067b20d9bd25f6a22f3e0aed13c0429a44939b028eb", size = 7191624, upload-time = "2026-02-26T13:18:14.821Z" },
+    { url = "https://files.pythonhosted.org/packages/26/08/25971c275c3d503b04a85df412a894be63d22cc54e1dc8b6f9e9648d72f7/pyxel-2.7.2-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:ec84b483181d3916eb563599115b7f6de8c82ac81bd783abbb81ffe8e9f8b12e", size = 6932093, upload-time = "2026-02-26T13:18:16.75Z" },
+    { url = "https://files.pythonhosted.org/packages/53/61/cf9f70fb5eb21024cf0060c86b2751a5efaf6d901cbd85d22c220f4c99e8/pyxel-2.7.2-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b7a0c51247fab9240c5b39449c7a601f352b6dab6d94123c0f1d83498bb5c102", size = 7600712, upload-time = "2026-02-26T13:18:18.37Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/31/7fc4b3b809ec1433531791875502a2a541520d06921ffc3f44f181ff8dca/pyxel-2.7.2-cp38-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:e9c060f7b4e9a4390c993a048ccdcb369c5b6d9b35ea225a39e4eab47cd7b6c9", size = 7606253, upload-time = "2026-02-26T13:18:19.676Z" },
+    { url = "https://files.pythonhosted.org/packages/12/ee/2fc048d9ec48f8ff2d3883add4a338c6d15b194a2fa2836b7aea08045ad9/pyxel-2.7.2-cp38-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:c975a6cc1523a5763098ba0a573de2412382089d288a5a32199782ea8ecc9d11", size = 8309327, upload-time = "2026-02-26T13:18:21.178Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/9f/4ab5963a51e5837536aca10dd4d5f14475efe8369897e94a35089f5d915a/pyxel-2.7.2-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b5dac22dc0c00d5f25799691bba43c327b478283157261f4bfa4a00aa47c5ae9", size = 7893401, upload-time = "2026-02-26T13:18:23.281Z" },
+    { url = "https://files.pythonhosted.org/packages/73/45/f03d2ba832c846be6da5932c5d1bfdf3cb4b5beb9789790d2c5df3d7a7e1/pyxel-2.7.2-cp38-abi3-win32.whl", hash = "sha256:06169176b2694b8e55c4e22fb5d88c1d7fadf28704cfb9d7bb6e028e78718959", size = 6761700, upload-time = "2026-02-26T13:18:27.375Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/4c/1fbce2d6a40ec6c0de4e6350a74a5d209724b93a1a91f9761318ab94d987/pyxel-2.7.2-cp38-abi3-win_amd64.whl", hash = "sha256:affea5fd8f46bc40a4cbcfd8c8dada4a713ab05ff7e12712588b39dc5fd45c5f", size = 6935241, upload-time = "2026-02-26T13:18:25.37Z" },
+]
