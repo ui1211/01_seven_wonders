@@ -1,0 +1,2 @@
+WIDTH = 240
+HEIGHT = 260
