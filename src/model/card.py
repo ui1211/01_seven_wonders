@@ -1,13 +1,23 @@
+# src/model/card.py
+from __future__ import annotations
+
+
 class Card:
-    def __init__(self, name, success, atk, mgc, tec, x, y, cost):
+    def __init__(self, name, success, atk, mgc, tec, cost):
         self.name = name
-        self.success = success
-        self.atk = atk
-        self.mgc = mgc
-        self.tec = tec
-        self.x = x
-        self.y = y
+        self.success = int(success)
+        self.atk = int(atk)
+        self.mgc = int(mgc)
+        self.tec = int(tec)
+        self.cost = int(cost)
+
+        self.in_graveyard = False
+        self.drag = False
+
+        self.x = 0
+        self.y = 0
+        self.scale = 1.0
+        self.z = 0
+
         self.w = 50
         self.h = 70
-        self.drag = False
-        self.cost = cost
