@@ -44,6 +44,7 @@ class GameEngine:
         self.deck = []
         self.hand = []
         self.graveyard = []
+        self.init_hand_size = 3
         self.max_hand_size = 5
 
         self.recycling = False
@@ -65,14 +66,15 @@ class GameEngine:
         self._anim_target_obj = None
         self._pending_grave_xy = None
 
-        self.draw_cost = 15
-        self.fail_cost = 25
+        self.draw_cost = 12
+        self.fail_cost = 30
         self.success_cost = -5
 
         self._return_anims = {}  # card -> {"t":int,"dur":int,"from":(x,y)}
 
         self.round_scene_manager = RoundSceneManager()
         self.current_intro_text = ""
+        self.last_play = None  # dict: {"card_name": str, "target_name": str, "success": bool}
 
     def reset_game(self):
         self.world_risk = 0
@@ -117,6 +119,7 @@ class GameEngine:
         self._anim_target_obj = None
         self._pending_grave_xy = None
         self._return_anims = {}
+        self.last_play = None
 
         self.current_intro_text = self.round_scene_manager.start_round_intro()
 
@@ -140,7 +143,7 @@ class GameEngine:
             c.drag = False
 
     def draw_initial_hand(self):
-        while len(self.hand) < self.max_hand_size and self.deck:
+        while len(self.hand) < self.init_hand_size and self.deck:  # self.max_hand_size and self.deck:
             self.hand.append(self.deck.pop())
 
     def draw_one(self):
@@ -163,12 +166,8 @@ class GameEngine:
         return True
 
     def recycle_graveyard_to_deck(self):
-        if not self.graveyard:
+        if not self.graveyard or self.recycling:
             return
-
-        self.deck = self.graveyard
-        self.graveyard = []
-        random.shuffle(self.deck)
 
         self.recycling = True
         self.recycle_timer = 30
@@ -224,7 +223,7 @@ class GameEngine:
         success = roll <= card.success
 
         self.popup_success = success
-        self.popup_text = f"目標:{card.success} 出目:{roll} {'成功' if success else '失敗'}"
+        self.popup_text = f"【{'成功' if success else '失敗'}】: 目標:{card.success} 出目:{roll} "
         self.popup_timer = 60
 
         base_dmg = {"hp": card.atk, "mp": card.mgc, "tp": card.tec}
@@ -243,6 +242,12 @@ class GameEngine:
             dmg_values = [card.atk, card.mgc, card.tec]
             dmg_map = {status_keys[i]: dmg_values[i] for i in range(3) if dmg_values[i] > 0}
             self._apply_risk(self.fail_cost)
+
+        self.last_play = {
+            "card_name": getattr(card, "name", ""),
+            "target_name": getattr(target_obj, "name", ""),
+            "success": bool(success),
+        }
 
         self.pending_damage = {
             target_obj: {
@@ -295,6 +300,9 @@ class GameEngine:
         if self.recycling:
             self.recycle_timer -= 1
             if self.recycle_timer <= 0:
+                self.deck = self.graveyard
+                self.graveyard = []
+                random.shuffle(self.deck)
                 self.recycling = False
 
     def update_motion(self, hand_poses, grave_poses, grave_next_xy):
@@ -355,6 +363,10 @@ class GameEngine:
                 self._anim_dur = 0
                 self._anim_target_obj = None
                 self._pending_grave_xy = None
+
+                if not self.deck and not self.hand and self.graveyard:
+                    self.recycle_graveyard_to_deck()
+
                 return
 
         self._anim_t -= 1
@@ -390,9 +402,10 @@ class GameEngine:
             self.finish_round(reason="clear")
 
     def finish_round(self, reason: str):
-
         if self.state in (GameState.RESULT, GameState.SUMMARY):
             return
+
+        play = self.last_play or {"card_name": "", "target_name": "", "success": None}
 
         if reason == "risk":
             result_text = self.scene_manager.get_text(99)
@@ -400,6 +413,7 @@ class GameEngine:
                 {
                     "round": self.round_index,
                     "intro": self.current_intro_text,
+                    "play": play,
                     "result": result_text,
                     "kind": "risk",
                 }
@@ -413,6 +427,7 @@ class GameEngine:
             {
                 "round": self.round_index,
                 "intro": self.current_intro_text,
+                "play": play,
                 "result": result_text,
                 "kind": "clear",
             }
@@ -431,18 +446,30 @@ class GameEngine:
     def build_story_text(self):
         connectors = ["その後", "やがて", "次に", "さらに", "そして"]
 
-        story_parts = []
-
+        parts = []
         for i, r in enumerate(self.round_results):
-            intro = r["intro"]
-            result = r["result"]
+            intro = r.get("intro", "")
+            result = r.get("result", "")
+            kind = r.get("kind", "")
+
+            play = r.get("play") or {}
+            card_name = play.get("card_name", "")
+            target_name = play.get("target_name", "")
+            success = play.get("success", None)
 
             if i == 0:
-                part = f"{intro} そこで{result}。"
+                prefix = ""
             else:
-                conn = connectors[i % len(connectors)]
-                part = f"{conn}、{intro} そして{result}。"
+                prefix = connectors[(i - 1) % len(connectors)] + "、"
 
-            story_parts.append(part)
+            segs = []
 
-        return "".join(story_parts)
+            if intro:
+                segs.append(f"{intro}{result}")
+
+            if kind == "risk":
+                pass
+
+            parts.append(prefix + "".join(segs))
+
+        return "".join(parts)

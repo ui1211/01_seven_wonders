@@ -29,7 +29,7 @@ class LayoutManager:
 
     def object_slots(self, n: int):
         margin_x = self.width * 0.1
-        usable_w = self.width * 0.8
+        usable_w = self.width * 0.7
         y = int(self.height * 0.35)
 
         if n <= 1:
@@ -99,12 +99,13 @@ class LayoutManager:
 
     def graveyard_poses(self, cards):
         gx = int(self.width * 0.88)
-        gy = int(self.height * 0.75)
+        gy = int(self.height * 0.85)
 
         grave = [c for c in cards if c.in_graveyard]
         poses = {}
         for i, c in enumerate(grave):
-            poses[c] = Pose(x=gx + i * 2, y=gy + i * 2, scale=0.78, z=-100 - i)
+            if i < 3:
+                poses[c] = Pose(x=gx + i * 2, y=gy + i * 2, scale=1.0, z=-100 - i)
         return poses
 
     def _hit(self, mx, my, pose, card_w: int, card_h: int):
