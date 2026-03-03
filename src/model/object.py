@@ -23,7 +23,7 @@ class Obj:
         self.y = y
         self.image_path = image_path
         self.w = 40
-        self.h = 40
+        self.h = 50
         self.alive = True
 
         self.scene_map = {"hp": scene_hp, "mp": scene_mp, "tp": scene_tp}

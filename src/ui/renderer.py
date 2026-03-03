@@ -9,8 +9,8 @@ class Renderer:
         self.width = int(width)
         self.height = int(height)
 
-        self.card_w = int(width * 0.09)
-        self.card_h = int(self.card_w * 1.4)
+        self.card_w = int(width * 0.14)
+        self.card_h = int(self.card_w * 1.2)
 
     def draw_text(self, pyxel, x: int, y: int, text: str, col: int):
         # pyxel.text(x + 1, y + 1, text, 0, self.font)
@@ -39,11 +39,11 @@ class Renderer:
 
         ratio = risk / risk_max
         if ratio < 0.3:
-            col = 3
+            col = 7
         elif ratio < 0.7:
-            col = 10
+            col = 5
         else:
-            col = 8
+            col = 14
 
         self.draw_text(pyxel, 10, 5, f"{round_index}/{max_rounds}", 7)
         self.draw_text(pyxel, 62, 5, "きけんど", 7)
@@ -62,23 +62,23 @@ class Renderer:
         x = int(cx - w // 2)
         y = int(cy - h // 2)
 
-        pyxel.blt(x, y, self.images["card"], 0, 0, w, h)
+        pyxel.blt(x, y, self.images["card"], 0, 0, w, h, 0)
 
         if card.in_graveyard:
-            pyxel.rect(x, y, w, 12, 0)
-            self.draw_text(pyxel, x + 4, y + 2, "USED", 8)
+            # pyxel.rect(x, y, w, 12, 0)
+            # self.draw_text(pyxel, x + 4, y + 2, "USED", 8)
             return
 
-        # pyxel.rect(x, y, w, 12, 7)
+        # pyxel.rect(x, y, w * 0.8, 12, 7)
         self.draw_text(pyxel, x + 4, y + 2, str(card.name), 0)
 
         stats = []
         if card.atk > 0:
-            stats.append(("ATK", card.atk, 8))
+            stats.append(("ATK", card.atk, 14))
         if card.mgc > 0:
-            stats.append(("MGC", card.mgc, 12))
+            stats.append(("MGC", card.mgc, 13))
         if card.tec > 0:
-            stats.append(("TEC", card.tec, 3))
+            stats.append(("TEC", card.tec, 7))
 
         mid_y = y + h // 3 - 6
         sx = x + 6
@@ -94,30 +94,30 @@ class Renderer:
         img = self.images.get(obj.image_path)
 
         if img:
-            pyxel.blt(obj.x, obj.y, img, 0, 0, obj.w, obj.h)
+            pyxel.blt(obj.x + 2, obj.y, img, 0, 0, obj.w, obj.h, 0)
         else:
             pyxel.rect(obj.x, obj.y, obj.w, obj.h, 2)
 
         name_w = max(40, len(str(obj.name)) * 4 + 10)
-        self.draw_label_box(pyxel, obj.x - 2, obj.y - 14, name_w, 12)
-        self.draw_text(pyxel, obj.x + 2, obj.y - 12, str(obj.name), 7)
+        self.draw_label_box(pyxel, obj.x - 2, obj.y - 14, name_w, 0)
+        self.draw_text(pyxel, obj.x + 2, obj.y - 12, str(obj.name), 0)
 
-        self.draw_bar(pyxel, obj.x, obj.y + 45, obj.hp, obj.max_hp, 8)
-        self.draw_bar(pyxel, obj.x, obj.y + 52, obj.mp, obj.max_mp, 12)
-        self.draw_bar(pyxel, obj.x, obj.y + 59, obj.tp, obj.max_tp, 3)
+        self.draw_bar(pyxel, obj.x, obj.y + 52, obj.hp, obj.max_hp, 14)
+        self.draw_bar(pyxel, obj.x, obj.y + 58, obj.mp, obj.max_mp, 13)
+        self.draw_bar(pyxel, obj.x, obj.y + 64, obj.tp, obj.max_tp, 7)
 
     def draw_popup(self, pyxel, layout, text: str, success: bool):
         popup_w = 230
         popup_x, popup_y = layout.popup_position(popup_w)
 
         if success:
-            bg = 3
+            bg = 7
             border = 11
-            text_col = 0
+            text_col = 12
         else:
-            bg = 8
-            border = 7
-            text_col = 7
+            bg = 14
+            border = 11
+            text_col = 12
 
         pyxel.rect(popup_x, popup_y, popup_w, 26, bg)
         pyxel.rectb(popup_x, popup_y, popup_w, 26, border)

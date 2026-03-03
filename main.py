@@ -8,11 +8,13 @@ from src.scene_manager import SceneManager
 from src.ui.input_controller import InputController
 from src.ui.layout_manager import LayoutManager
 from src.ui.renderer import Renderer
+from src.ui.theme import WARM_16, apply_palette
 
 
 class App:
     def __init__(self):
         pyxel.init(WIDTH, HEIGHT, title="B Demo")
+        apply_palette(WARM_16)
         pyxel.mouse(True)
 
         self.font = pyxel.Font("assets/misaki_gothic.bdf")
@@ -46,7 +48,7 @@ class App:
             path = obj.image_path
             if path not in images:
                 raw = pyxel.Image.from_image(path)
-                images[path] = self.resize_image(raw, 40, 40)
+                images[path] = self.resize_image(raw, 40, 50)
 
         return images
 
@@ -213,7 +215,7 @@ class App:
             self.renderer.draw_text(pyxel, deck_x + 6, deck_y + h + 2, f"{len(self.game.deck)}", 7)
             if len(self.game.hand) < self.game.max_hand_size:
                 if (pyxel.frame_count // 30) % 2 == 0:
-                    self.renderer.draw_text_center(pyxel, deck_x + w // 2, deck_y - 12, "CLICK ME!", 8)
+                    self.renderer.draw_text_center(pyxel, deck_x + w // 2.5, deck_y - 12, "DRAW ME!", 6)
 
         self.renderer.draw_label_box(pyxel, 20, HEIGHT / 4 - 60, WIDTH - 40, 30)
         self.renderer.draw_text(pyxel, 30, HEIGHT / 4 - 50, self.game.current_intro_text, 7)

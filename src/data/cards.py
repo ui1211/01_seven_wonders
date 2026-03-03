@@ -1,4 +1,6 @@
 # src/data/cards.py
+import random
+
 from src.model.card import Card
 
 
@@ -33,8 +35,7 @@ def create_cards():
     ]
 
     deck = []
-    for _ in range(2):
-        for c in base:
-            deck.append(Card(c.name, c.success, c.atk, c.mgc, c.tec, c.cost))
+    for c in random.sample(base, 4):
+        deck.append(Card(c.name, c.success, c.atk, c.mgc, c.tec, c.cost))
 
     return deck
