@@ -34,8 +34,9 @@ def create_cards():
         Card("祈祷", 90, 0, 0, 0, -20),
     ]
 
-    deck = []
-    for c in random.sample(base, 4):
-        deck.append(Card(c.name, c.success, c.atk, c.mgc, c.tec, c.cost))
+    # deck = []
+    # for c in random.sample(base, 4):
+    #     deck.append(Card(c.name, c.success, c.atk, c.mgc, c.tec, c.cost))
+    # return deck
 
-    return deck
+    return base
