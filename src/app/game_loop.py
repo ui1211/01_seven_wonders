@@ -69,7 +69,6 @@ class GameLoop:
 
         if self.game.state == GameState.SUMMARY:
             if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-                mx, my = pyxel.mouse_x, pyxel.mouse_y
                 if self._hit_rect(
                     mx,
                     my,
@@ -83,7 +82,14 @@ class GameLoop:
 
         if self.game.state == GameState.RESULT:
             if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-                if self._hit_rect(mx, my, self.result_btn_x, self.result_btn_y, self.result_btn_w, self.result_btn_h):
+                if self._hit_rect(
+                    mx,
+                    my,
+                    self.result_btn_x,
+                    self.result_btn_y,
+                    self.result_btn_w,
+                    self.result_btn_h,
+                ):
                     act = self.game.request_next()
                     if act == "next_round":
                         slots = self.layout.object_slots(3)
@@ -95,6 +101,7 @@ class GameLoop:
 
         if pyxel.btnr(pyxel.MOUSE_BUTTON_LEFT):
             card, obj = self.input.on_mouse_up(self.game.objects, mx, my)
+
             if card is not None:
                 if obj is not None and obj.alive and self.game.can_play_card(card):
                     self.game.play_card(
@@ -109,6 +116,7 @@ class GameLoop:
 
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
             deck_x, deck_y, w, h = self._deck_rect()
+
             if self._hit_rect(mx, my, deck_x, deck_y, w, h):
                 self.game.draw_one()
             else:
@@ -130,14 +138,14 @@ class GameLoop:
 
             story = self.game.build_story_text()
 
-            self.renderer.draw_label_box(pyxel, 20, 40, self.width - 40, self.height - 120)
+            self.renderer.draw_label_box(pyxel, 10, 40, self.width - 40, self.height - 120)
 
-            max_chars = (self.width - 60) // 8
+            max_chars = (self.width - 60) // 13
             lines = [story[i : i + max_chars] for i in range(0, len(story), max_chars)]
 
             y = 60
             for line in lines:
-                self.renderer.draw_text(pyxel, 30, y, line, 7)
+                self.renderer.draw_text(30, y, line, 7)
                 y += 12
 
             self.renderer.draw_button(
@@ -152,11 +160,20 @@ class GameLoop:
 
         if self.game.state == GameState.RESULT:
             pyxel.cls(0)
+
             text = self.scene_manager.get_text(self.game.current_scene_id)
+
             self.renderer.draw_label_box(pyxel, 24, self.height // 2 - 20, self.width - 48, 40)
-            self.renderer.draw_text_center(pyxel, self.width // 2, self.height // 2 - 6, text, 7)
+
+            self.renderer.draw_text_center(
+                self.width // 2,
+                self.height // 2 - 6,
+                text,
+                7,
+            )
 
             label = "つづける" if self.game.round_index < self.game.max_rounds else "まとめへ"
+
             self.renderer.draw_button(
                 pyxel,
                 self.result_btn_x,
@@ -179,6 +196,7 @@ class GameLoop:
             self.renderer.draw_object(pyxel, o)
 
         grave_poses = self.layout.graveyard_poses(self.game.graveyard)
+
         all_poses = {}
         all_poses.update(grave_poses)
         all_poses.update(
@@ -197,9 +215,12 @@ class GameLoop:
         for c in all_cards:
             if self.game.is_animating(c):
                 continue
+
             p = all_poses.get(c)
+
             if p is None:
                 continue
+
             self.renderer.draw_card(pyxel, c, p)
 
         if self.game.anim_card is not None:
@@ -212,18 +233,53 @@ class GameLoop:
             )
 
         if self.game.popup_timer > 0:
-            self.renderer.draw_popup(pyxel, self.layout, self.game.popup_text, self.game.popup_success)
+            self.renderer.draw_popup(
+                pyxel,
+                self.layout,
+                self.game.popup_text,
+                self.game.popup_success,
+            )
 
         if self.game.recycling:
-            self.renderer.draw_text_center(pyxel, self.width // 2, self.height // 2, "SHUFFLE...", 8)
+            self.renderer.draw_text_center(
+                self.width // 2,
+                self.height // 2,
+                "SHUFFLE...",
+                8,
+            )
 
         deck_x, deck_y, w, h = self._deck_rect()
+
         if self.game.deck:
             pyxel.blt(deck_x, deck_y, self.images["card"], 0, 0, w, h)
-            self.renderer.draw_text(pyxel, deck_x + 6, deck_y + h + 2, f"{len(self.game.deck)}", 7)
+
+            self.renderer.draw_text(
+                deck_x + 6,
+                deck_y + h + 2,
+                f"{len(self.game.deck)}",
+                7,
+            )
+
             if len(self.game.hand) < self.game.max_hand_size:
                 if (pyxel.frame_count // 30) % 2 == 0:
-                    self.renderer.draw_text_center(pyxel, int(deck_x + w // 2.5), deck_y - 12, "DRAW ME!", 6)
+                    self.renderer.draw_text_center(
+                        int(deck_x + w // 2.5),
+                        deck_y - 12,
+                        "DRAW ME!",
+                        6,
+                    )
 
-        self.renderer.draw_label_box(pyxel, 20, int(self.height / 4 - 60), self.width - 40, 30)
-        self.renderer.draw_text(pyxel, 30, int(self.height / 4 - 50), self.game.current_intro_text, 7)
+        self.renderer.draw_label_box(
+            pyxel,
+            20,
+            int(self.height / 4 - 60),
+            self.width - 40,
+            30,
+        )
+
+        self.renderer.draw_text(
+            30,
+            int(self.height / 4 - 50),
+            self.game.current_intro_text,
+            7,
+        )

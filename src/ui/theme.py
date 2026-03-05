@@ -20,6 +20,25 @@ WARM_16 = [
     0x3B2A22,  # 15 outline
 ]
 
+MODERN_16 = [
+    0x0F172A,  # 0 background (deep navy)
+    0xF8FAFC,  # 1 text
+    0x1E293B,  # 2 panel dark
+    0x334155,  # 3 panel
+    0x475569,  # 4 border
+    0xEAB308,  # 5 accent gold
+    0xEF4444,  # 6 red
+    0x22C55E,  # 7 green
+    0x3B82F6,  # 8 blue
+    0xA855F7,  # 9 purple
+    0x06B6D4,  # 10 cyan
+    0x020617,  # 11 deep bg
+    0xF1F5F9,  # 12 highlight
+    0x94A3B8,  # 13 light gray
+    0xF97316,  # 14 orange
+    0x64748B,  # 15 outline
+]
+
 
 def apply_palette(palette_16):
     if len(palette_16) != 16:
