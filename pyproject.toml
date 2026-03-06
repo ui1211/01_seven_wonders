@@ -7,4 +7,11 @@ requires-python = ">=3.10"
 dependencies = [
     "pygame>=2.6.1",
     "pyxel>=2.7.2",
+    "pyxel-universal-font>=1.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "bdflib>=2.1.0",
+    "fonttools>=4.61.1",
 ]

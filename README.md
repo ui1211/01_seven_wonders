@@ -7,4 +7,9 @@
 ```bash
 uv run pyxel package . main.py
 uv run pyxel app2html 01_seven_wonders.pyxapp
-```w
+```
+
+- htmlをdocs/index.htmlとして移動
+- githubで以下を実施
+  - Setting/PagesでBranchをmasterにし/docsに変更してsave
+  - https://{user_name}.github.io/01_seven_wonders/
