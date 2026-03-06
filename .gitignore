@@ -10,3 +10,7 @@ wheels/
 .venv
 download/
 *.pyxapp
+
+# pyxel build
+*.pyxapp
+*.html
