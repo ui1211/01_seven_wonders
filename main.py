@@ -1,6 +1,5 @@
 # main.py
 import pyxel
-import PyxelUniversalFont as puf
 
 from src.app.game_loop import GameLoop
 from src.data.objects import create_object_pool
@@ -17,10 +16,9 @@ class App:
     def __init__(self):
         pyxel.init(WIDTH, HEIGHT, title="B Demo")
         apply_palette(WARM_16)
-        # pyxel.images[0].load(0, 0, "./assets/assets0.png", incl_colors=True)
         pyxel.mouse(True)
 
-        writer = puf.Writer("IPA_Gothic.ttf")
+        font = pyxel.Font("assets/misaki_gothic.bdf")
 
         scene_manager = SceneManager()
         layout = LayoutManager(WIDTH, HEIGHT)
@@ -29,7 +27,7 @@ class App:
         object_pool = create_object_pool()
         game = GameEngine(scene_manager, object_pool)
 
-        renderer = Renderer(writer, {}, WIDTH, HEIGHT)
+        renderer = Renderer(font, {}, WIDTH, HEIGHT)
 
         images = self.load_images(pyxel, object_pool, renderer)
         renderer.images = images
@@ -94,5 +92,6 @@ class App:
         return dst
 
 
+App()
 App()
 App()

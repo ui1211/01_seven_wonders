@@ -1,2 +1,3 @@
-WIDTH = int(640 * 1.0)
-HEIGHT = int(480 * 1.0)
+SCALE = 1.0
+WIDTH = int(740 * SCALE)
+HEIGHT = int(480 * SCALE)

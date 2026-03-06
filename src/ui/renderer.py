@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import pyxel
+
 
 class Renderer:
-    def __init__(self, writer, images, width: int, height: int):
-        self.writer = writer
+    def __init__(self, font, images, width: int, height: int):
+        self.font = font
         self.images = images
 
         self.width = int(width)
@@ -21,13 +23,13 @@ class Renderer:
         self.object_w = int(self.width * 0.08)
         self.object_h = int(self.object_w * 1.2)
 
-        self.bar_w = self.object_w  # int(self.width * 0.07)
+        self.bar_w = self.object_w
         self.bar_h = int(self.height * 0.01)
 
         self.name_box_h = int(self.height * 0.02)
 
     def draw_text(self, x: int, y: int, text: str, col: int):
-        self.writer.draw(x, y, text, self.font_size, col)
+        pyxel.text(x, y, text, col, self.font)
 
     def draw_text_center(self, cx: int, y: int, text: str, col: int):
         w = 0
