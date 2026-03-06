@@ -13,4 +13,5 @@ download/
 
 # pyxel build
 *.pyxapp
-*.html
+
+*.ps1
