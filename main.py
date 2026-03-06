@@ -8,8 +8,8 @@ from src.option import HEIGHT, WIDTH
 from src.scene_manager import SceneManager
 from src.ui.input_controller import InputController
 from src.ui.layout_manager import LayoutManager
-from src.ui.renderer import Renderer
-from src.ui.theme import WARM_16, apply_palette
+from src.ui.renderer.renderer import Renderer
+from src.ui.theme import MODERN_16, WARM_16, apply_palette
 
 
 class App:
@@ -27,8 +27,9 @@ class App:
         object_pool = create_object_pool()
         game = GameEngine(scene_manager, object_pool)
 
-        images = self.load_images(pyxel, object_pool)
-        renderer = Renderer(font, images, WIDTH, HEIGHT)
+        renderer = Renderer(font, None, WIDTH, HEIGHT)
+        images = self.load_images(pyxel, object_pool, renderer)
+        renderer.set_images(images)
 
         self.init_sounds(pyxel)
 
@@ -51,17 +52,27 @@ class App:
 
         pyxel.run(loop.update, loop.draw)
 
-    def load_images(self, pyxel, object_pool):
+    def load_images(self, pyxel, object_pool, renderer):
         images = {}
 
         raw_card = pyxel.Image.from_image("./assets/images/trading_card03_yellow.png")
-        images["card"] = self.resize_image(pyxel, raw_card, 50, 70)
+        images["card"] = self.resize_image(
+            pyxel,
+            raw_card,
+            renderer.card_w,
+            renderer.card_h,
+        )
 
         for obj in object_pool:
             path = obj.image_path
             if path not in images:
                 raw = pyxel.Image.from_image(path)
-                images[path] = self.resize_image(pyxel, raw, 40, 50)
+                images[path] = self.resize_image(
+                    pyxel,
+                    raw,
+                    renderer.object_w,
+                    renderer.object_h,
+                )
 
         return images
 

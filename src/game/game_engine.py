@@ -44,8 +44,9 @@ class GameEngine:
         self.deck = []
         self.hand = []
         self.graveyard = []
-        self.init_hand_size = 3
-        self.max_hand_size = 5
+        self.init_hand_size = 5
+        self.max_hand_size = 7
+        self.max_deck_size = 12
 
         self.recycling = False
         self.recycle_timer = 0
@@ -70,11 +71,11 @@ class GameEngine:
         self.fail_cost = 30
         self.success_cost = -5
 
-        self._return_anims = {}  # card -> {"t":int,"dur":int,"from":(x,y)}
+        self._return_anims = {}
 
         self.round_scene_manager = RoundSceneManager()
         self.current_intro_text = ""
-        self.last_play = None  # dict: {"card_name": str, "target_name": str, "success": bool}
+        self.last_play = None
 
     def reset_game(self):
         self.world_risk = 0
@@ -133,7 +134,7 @@ class GameEngine:
             self.objects.append(o)
 
     def build_deck(self):
-        self.deck = [c for c in self.cards]
+        self.deck = random.sample([c for c in self.cards], self.max_deck_size)
         random.shuffle(self.deck)
         self.hand = []
         self.graveyard = []
