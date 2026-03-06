@@ -8,7 +8,7 @@ from src.option import HEIGHT, WIDTH
 from src.scene_manager import SceneManager
 from src.ui.input_controller import InputController
 from src.ui.layout_manager import LayoutManager
-from src.ui.renderer import Renderer
+from src.ui.renderer.renderer import Renderer
 from src.ui.theme import MODERN_16, WARM_16, apply_palette
 
 
@@ -27,10 +27,9 @@ class App:
         object_pool = create_object_pool()
         game = GameEngine(scene_manager, object_pool)
 
-        renderer = Renderer(font, {}, WIDTH, HEIGHT)
-
+        renderer = Renderer(font, None, WIDTH, HEIGHT)
         images = self.load_images(pyxel, object_pool, renderer)
-        renderer.images = images
+        renderer.set_images(images)
 
         self.init_sounds(pyxel)
 
@@ -92,6 +91,4 @@ class App:
         return dst
 
 
-App()
-App()
 App()
