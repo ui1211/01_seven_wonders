@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.game.game_engine import SceneStatus
 from src.scene.base_scene import SceneRuntime
+from src.scene.battle_scene import BattleScene
 from src.scene.play_scene import PlayScene
 from src.scene.result_scene import ResultScene
 from src.scene.summary_scene import SummaryScene
@@ -17,6 +18,7 @@ class SceneRouter:
         return cls(
             scenes={
                 SceneStatus.PLAY: PlayScene(),
+                SceneStatus.BATTLE: BattleScene(),
                 SceneStatus.RESULT: ResultScene(),
                 SceneStatus.SUMMARY: SummaryScene(),
             }

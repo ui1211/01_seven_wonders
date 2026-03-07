@@ -11,6 +11,7 @@ class Obj:
         scene_hp=None,
         scene_mp=None,
         scene_tp=None,
+        is_enemy=False,
     ):
         self.name = name
         self.hp = hp
@@ -25,5 +26,6 @@ class Obj:
         self.w = 40
         self.h = 50
         self.alive = True
+        self.is_enemy = bool(is_enemy)
 
         self.scene_map = {"hp": scene_hp, "mp": scene_mp, "tp": scene_tp}

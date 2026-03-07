@@ -26,6 +26,7 @@ def create_object_pool(n: int = 1):
             scene_hp=21,
             scene_mp=22,
             scene_tp=23,
+            is_enemy=True,
         ),
         Obj(
             "住人",
@@ -38,6 +39,7 @@ def create_object_pool(n: int = 1):
             scene_hp=31,
             scene_mp=32,
             scene_tp=33,
+            is_enemy=True,
         ),
         Obj(
             "箱",
@@ -74,5 +76,6 @@ def create_object_pool(n: int = 1):
             scene_hp=61,
             scene_mp=62,
             scene_tp=63,
+            is_enemy=True,
         ),
     ]

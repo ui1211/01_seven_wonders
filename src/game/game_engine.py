@@ -12,6 +12,7 @@ class SceneStatus(IntEnum):
     PLAY = 0
     RESULT = 1
     SUMMARY = 2
+    BATTLE = 3
 
 
 # Backward compatibility for existing imports
@@ -81,6 +82,7 @@ class GameEngine:
         self.round_scene_manager = RoundSceneManager()
         self.current_intro_text = ""
         self.last_play = None
+        self.battle_enemy = None
 
         self.dice_anim = False
         self.dice_timer = 0
@@ -108,6 +110,7 @@ class GameEngine:
         self.popup_text = ""
         self.popup_timer = 0
         self.popup_success = True
+        self.battle_enemy = None
 
         self.anim_card = None
         self._anim_phase = None
@@ -153,6 +156,7 @@ class GameEngine:
         self._pending_grave_xy = None
         self._return_anims = {}
         self.last_play = None
+        self.battle_enemy = None
 
         self.dice_anim = False
         self.dice_timer = 0
@@ -230,13 +234,14 @@ class GameEngine:
             scene_hp=o.scene_map.get("hp"),
             scene_mp=o.scene_map.get("mp"),
             scene_tp=o.scene_map.get("tp"),
+            is_enemy=o.is_enemy,
         )
 
     def is_animating(self, card) -> bool:
         return self.anim_card == card
 
     def can_play_card(self, card) -> bool:
-        if self.state != SceneStatus.PLAY:
+        if self.state not in (SceneStatus.PLAY, SceneStatus.BATTLE):
             return False
         if self.damage_timer > 0:
             return False
@@ -373,6 +378,10 @@ class GameEngine:
                     self._anim_t = self._anim_dur
                     self._anim_from = (int(card.x), int(card.y))
                     self._anim_to = (int(target_obj.x + target_obj.w // 2), int(target_obj.y + target_obj.h // 2))
+
+                    # Enter battle immediately when ATK damage is applied to an enemy.
+                    if dmg_map.get("hp", 0) > 0 and getattr(target_obj, "is_enemy", False):
+                        self.enter_battle(target_obj)
 
             if self.dice_timer <= 0:
                 self.dice_anim = False
@@ -534,6 +543,29 @@ class GameEngine:
 
     def is_scene_status(self, status: SceneStatus) -> bool:
         return self._state == SceneStatus(status)
+
+    def enter_battle(self, obj):
+        if obj is None:
+            return
+        if not getattr(obj, "alive", False):
+            return
+        if not getattr(obj, "is_enemy", False):
+            return
+        self.battle_enemy = obj
+        self.set_scene_status(SceneStatus.BATTLE)
+
+    def exit_battle(self):
+        self.battle_enemy = None
+        self.set_scene_status(SceneStatus.PLAY)
+
+    def finish_battle(self):
+        enemy = self.battle_enemy
+        if enemy is not None:
+            next_scene = enemy.scene_map.get("hp")
+            if next_scene is not None:
+                self.current_scene_id = next_scene
+        self.battle_enemy = None
+        self.finish_round(reason="clear")
 
     def _apply_risk(self, amount: int):
         self.world_risk += amount
