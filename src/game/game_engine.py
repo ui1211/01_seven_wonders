@@ -2,15 +2,20 @@
 from __future__ import annotations
 
 import random
+from enum import IntEnum
 
 from src.data.cards import create_cards
 from src.round_scene_manager import RoundSceneManager
 
 
-class GameState:
+class SceneStatus(IntEnum):
     PLAY = 0
     RESULT = 1
     SUMMARY = 2
+
+
+# Backward compatibility for existing imports
+GameState = SceneStatus
 
 
 def _smoothstep(t: float) -> float:
@@ -27,7 +32,7 @@ class GameEngine:
         self.cards = create_cards()
         self.object_pool = object_pool
 
-        self.state = GameState.PLAY
+        self._state = SceneStatus.PLAY
         self.current_scene_id = 0
 
         self.world_risk = 0
@@ -93,7 +98,7 @@ class GameEngine:
 
     def reset_game(self):
         self.world_risk = 0
-        self.state = GameState.PLAY
+        self.set_scene_status(SceneStatus.PLAY)
         self.current_scene_id = 0
         self.round_index = 1
         self.round_results = []
@@ -132,7 +137,7 @@ class GameEngine:
             c.drag = False
 
     def start_round(self, slots):
-        self.state = GameState.PLAY
+        self.set_scene_status(SceneStatus.PLAY)
         self.current_scene_id = 0
         self.popup_text = ""
         self.popup_timer = 0
@@ -231,7 +236,7 @@ class GameEngine:
         return self.anim_card == card
 
     def can_play_card(self, card) -> bool:
-        if self.state != GameState.PLAY:
+        if self.state != SceneStatus.PLAY:
             return False
         if self.damage_timer > 0:
             return False
@@ -276,7 +281,7 @@ class GameEngine:
         if self.popup_timer > 0:
             self.popup_timer -= 1
 
-        if self.state == GameState.RESULT and self.round_result_timer > 0:
+        if self.state == SceneStatus.RESULT and self.round_result_timer > 0:
             self.round_result_timer -= 1
 
         if self.damage_timer > 0:
@@ -463,7 +468,7 @@ class GameEngine:
             self._pending_grave_xy = grave_next_xy
 
     def request_next(self):
-        if self.state != GameState.RESULT:
+        if self.state != SceneStatus.RESULT:
             return
         if self.round_result_timer > 0:
             return
@@ -472,7 +477,7 @@ class GameEngine:
             self.round_index += 1
             return "next_round"
 
-        self.state = GameState.SUMMARY
+        self.set_scene_status(SceneStatus.SUMMARY)
         return "to_summary"
 
     def resolve_object(self, obj, dmg_type):
@@ -482,7 +487,7 @@ class GameEngine:
             self.finish_round(reason="clear")
 
     def finish_round(self, reason: str):
-        if self.state in (GameState.RESULT, GameState.SUMMARY):
+        if self.state in (SceneStatus.RESULT, SceneStatus.SUMMARY):
             return
 
         play = self.last_play or {"card_name": "", "target_name": "", "success": None}
@@ -498,7 +503,7 @@ class GameEngine:
                     "kind": "risk",
                 }
             )
-            self.state = GameState.SUMMARY
+            self.set_scene_status(SceneStatus.SUMMARY)
             return
 
         result_text = self.scene_manager.get_text(self.current_scene_id)
@@ -513,8 +518,22 @@ class GameEngine:
             }
         )
 
-        self.state = GameState.RESULT
+        self.set_scene_status(SceneStatus.RESULT)
         self.round_result_timer = 15
+
+    @property
+    def state(self) -> SceneStatus:
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = SceneStatus(value)
+
+    def set_scene_status(self, status: SceneStatus):
+        self._state = SceneStatus(status)
+
+    def is_scene_status(self, status: SceneStatus) -> bool:
+        return self._state == SceneStatus(status)
 
     def _apply_risk(self, amount: int):
         self.world_risk += amount
