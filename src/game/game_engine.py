@@ -13,6 +13,7 @@ class SceneStatus(IntEnum):
     RESULT = 1
     SUMMARY = 2
     BATTLE = 3
+    TALK = 4
 
 
 # Backward compatibility for existing imports
@@ -83,6 +84,9 @@ class GameEngine:
         self.current_intro_text = ""
         self.last_play = None
         self.battle_enemy = None
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
 
         self.dice_anim = False
         self.dice_timer = 0
@@ -111,6 +115,9 @@ class GameEngine:
         self.popup_timer = 0
         self.popup_success = True
         self.battle_enemy = None
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
 
         self.anim_card = None
         self._anim_phase = None
@@ -157,6 +164,9 @@ class GameEngine:
         self._return_anims = {}
         self.last_play = None
         self.battle_enemy = None
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
 
         self.dice_anim = False
         self.dice_timer = 0
@@ -235,13 +245,15 @@ class GameEngine:
             scene_mp=o.scene_map.get("mp"),
             scene_tp=o.scene_map.get("tp"),
             is_enemy=o.is_enemy,
+            can_talk=o.can_talk,
+            topics=o.topics,
         )
 
     def is_animating(self, card) -> bool:
         return self.anim_card == card
 
     def can_play_card(self, card) -> bool:
-        if self.state not in (SceneStatus.PLAY, SceneStatus.BATTLE):
+        if self.state not in (SceneStatus.PLAY, SceneStatus.BATTLE, SceneStatus.TALK):
             return False
         if self.damage_timer > 0:
             return False
@@ -354,20 +366,41 @@ class GameEngine:
                         dmg_map = {status_keys[i]: dmg_values[i] for i in range(3) if dmg_values[i] > 0}
                         self._apply_risk(self.fail_cost)
 
+                    # TALK scene uses topic objects; only TEC success resolves topic,
+                    # and target object's TEC is reduced on both success/fail.
+                    if self.state == SceneStatus.TALK and getattr(obj, "is_talk_topic", False):
+                        tec_damage = max(0, int(card.tec))
+                        if tec_damage <= 0:
+                            tec_damage = max(0, int(card.atk), int(card.mgc))
+                        talk_target = self.talk_target if self.talk_target is not None else obj
+                        topic_index = int(getattr(obj, "topic_index", -1))
+                        success = bool(success and int(card.tec) > 0)
+                        self.popup_success = success
+
+                        if success and 0 <= topic_index < len(self.talk_topics):
+                            self.talk_topics[topic_index]["resolved"] = True
+
+                        target_obj = talk_target
+                        dmg_map = {"tp": tec_damage} if tec_damage > 0 else {}
+
                     self.last_play = {
                         "card_name": getattr(card, "name", ""),
                         "target_name": getattr(target_obj, "name", ""),
                         "success": bool(success),
                     }
 
-                    self.pending_damage = {
-                        target_obj: {
-                            dtype: {"start": getattr(target_obj, dtype), "damage": dmg}
-                            for dtype, dmg in dmg_map.items()
-                            if dmg > 0
+                    self.pending_damage = (
+                        {
+                            target_obj: {
+                                dtype: {"start": getattr(target_obj, dtype), "damage": dmg}
+                                for dtype, dmg in dmg_map.items()
+                                if dmg > 0
+                            }
                         }
-                    }
-                    self.damage_timer = self.damage_duration
+                        if dmg_map
+                        else {}
+                    )
+                    self.damage_timer = self.damage_duration if self.pending_damage else 0
 
                     self.anim_card = card
                     self._anim_target_obj = target_obj
@@ -380,8 +413,18 @@ class GameEngine:
                     self._anim_to = (int(target_obj.x + target_obj.w // 2), int(target_obj.y + target_obj.h // 2))
 
                     # Enter battle immediately when ATK damage is applied to an enemy.
-                    if dmg_map.get("hp", 0) > 0 and getattr(target_obj, "is_enemy", False):
+                    if (
+                        self.state == SceneStatus.PLAY
+                        and dmg_map.get("hp", 0) > 0
+                        and getattr(target_obj, "is_enemy", False)
+                    ):
                         self.enter_battle(target_obj)
+                    elif (
+                        self.state == SceneStatus.PLAY
+                        and dmg_map.get("tp", 0) > 0
+                        and getattr(target_obj, "can_talk", False)
+                    ):
+                        self.enter_talk(target_obj)
 
             if self.dice_timer <= 0:
                 self.dice_anim = False
@@ -490,6 +533,9 @@ class GameEngine:
         return "to_summary"
 
     def resolve_object(self, obj, dmg_type):
+        if self.state == SceneStatus.TALK and obj is self.talk_target and dmg_type == "tp":
+            self.finish_talk()
+            return
         next_scene = obj.scene_map.get(dmg_type)
         if next_scene is not None:
             self.current_scene_id = next_scene
@@ -565,6 +611,33 @@ class GameEngine:
             if next_scene is not None:
                 self.current_scene_id = next_scene
         self.battle_enemy = None
+        self.finish_round(reason="clear")
+
+    def enter_talk(self, obj):
+        if obj is None:
+            return
+        if not getattr(obj, "alive", False):
+            return
+        if not getattr(obj, "can_talk", False):
+            return
+
+        self.talk_target = obj
+        self.talk_topic_cursor = 0
+        topics = [str(t) for t in getattr(obj, "topics", []) if str(t).strip()]
+        if not topics:
+            topics = ["様子を伺う", "事情を聞く", "落ち着かせる"]
+        self.talk_topics = [{"text": t, "resolved": False} for t in topics]
+        self.set_scene_status(SceneStatus.TALK)
+
+    def finish_talk(self):
+        target = self.talk_target
+        if target is not None:
+            next_scene = target.scene_map.get("tp")
+            if next_scene is not None:
+                self.current_scene_id = next_scene
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
         self.finish_round(reason="clear")
 
     def _apply_risk(self, amount: int):

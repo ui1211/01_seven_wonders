@@ -1,7 +1,7 @@
 from src.model.object import Obj
 
 
-def create_object_pool(n: int = 1):
+def create_object_pool(n: int = 2):
     return [
         Obj(
             "扉",
@@ -40,6 +40,13 @@ def create_object_pool(n: int = 1):
             scene_mp=32,
             scene_tp=33,
             is_enemy=True,
+            can_talk=True,
+            topics=[
+                "体調の相談",
+                "街のうわさ",
+                "困りごとの相談",
+                "信頼関係の確認",
+            ],
         ),
         Obj(
             "箱",
@@ -77,5 +84,12 @@ def create_object_pool(n: int = 1):
             scene_mp=62,
             scene_tp=63,
             is_enemy=True,
+            can_talk=True,
+            topics=[
+                "体調の相談",
+                "街のうわさ",
+                "困りごとの相談",
+                "信頼関係の確認",
+            ],
         ),
     ]

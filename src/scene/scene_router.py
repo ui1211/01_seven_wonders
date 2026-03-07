@@ -6,6 +6,7 @@ from src.scene.battle_scene import BattleScene
 from src.scene.play_scene import PlayScene
 from src.scene.result_scene import ResultScene
 from src.scene.summary_scene import SummaryScene
+from src.scene.talk_scene import TalkScene
 
 
 class SceneRouter:
@@ -19,6 +20,7 @@ class SceneRouter:
             scenes={
                 SceneStatus.PLAY: PlayScene(),
                 SceneStatus.BATTLE: BattleScene(),
+                SceneStatus.TALK: TalkScene(),
                 SceneStatus.RESULT: ResultScene(),
                 SceneStatus.SUMMARY: SummaryScene(),
             }

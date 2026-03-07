@@ -12,6 +12,8 @@ class Obj:
         scene_mp=None,
         scene_tp=None,
         is_enemy=False,
+        can_talk=False,
+        topics=None,
     ):
         self.name = name
         self.hp = hp
@@ -27,5 +29,7 @@ class Obj:
         self.h = 50
         self.alive = True
         self.is_enemy = bool(is_enemy)
+        self.can_talk = bool(can_talk)
+        self.topics = list(topics or [])
 
         self.scene_map = {"hp": scene_hp, "mp": scene_mp, "tp": scene_tp}
