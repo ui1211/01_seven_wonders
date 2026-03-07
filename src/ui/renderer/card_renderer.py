@@ -23,23 +23,26 @@ class CardRenderer:
         if card.in_graveyard:
             return
 
-        self.text.draw(x + int(w * 0.05), y + int(h * 0.05), str(card.name), 0)
+        self.text.draw(x + int(w * 0.17), y + int(h * 0.08), str(card.name), 0)
 
-        mid_y = y + int(h * 0.35)
+        mid_y = y + int(h * 0.60)
 
         if card.atk > 0:
-            self.text.draw(x + int(w * 0.07), mid_y, f"ATK:{card.atk}", 14)
+            self.text.draw(x + int(w * 0.17), mid_y, f"ATK:{card.atk}", 14)
             mid_y += 10
 
         if card.mgc > 0:
-            self.text.draw(x + int(w * 0.07), mid_y, f"MGC:{card.mgc}", 13)
+            self.text.draw(x + int(w * 0.17), mid_y, f"MGC:{card.mgc}", 13)
             mid_y += 10
 
         if card.tec > 0:
-            self.text.draw(x + int(w * 0.07), mid_y, f"TEC:{card.tec}", 7)
+            self.text.draw(x + int(w * 0.17), mid_y, f"TEC:{card.tec}", 7)
+            mid_y += 10
+
+        if card.atk < 0 and card.mgc < 0 and card.tec < 0:
             mid_y += 10
 
         suc = getattr(card, "success", 0)
         cost = getattr(card, "cost", 0)
 
-        self.text.draw(x + int(w * 0.07), mid_y, f"{suc}% C:{cost}", 0)
+        self.text.draw(x + int(w * 0.17), mid_y, f"{suc}% C:{cost}", 0)
