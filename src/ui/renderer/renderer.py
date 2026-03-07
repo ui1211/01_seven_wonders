@@ -1,4 +1,5 @@
 from src.ui.renderer.card_renderer import CardRenderer
+from src.ui.renderer.dice_renderer import DiceRenderer
 from src.ui.renderer.hud_renderer import HudRenderer
 from src.ui.renderer.object_renderer import ObjectRenderer
 from src.ui.renderer.text_renderer import TextRenderer
@@ -26,6 +27,7 @@ class Renderer:
         self.card = CardRenderer(self.text, images, self.card_w, self.card_h)
         self.obj = ObjectRenderer(self.text, images, self.object_w, self.object_h, self.bar_w, self.bar_h)
         self.hud = HudRenderer(self.text, width, height)
+        self.dice = DiceRenderer(self.text)
 
     def set_images(self, images):
         self.images = images

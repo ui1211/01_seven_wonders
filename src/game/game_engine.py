@@ -77,6 +77,20 @@ class GameEngine:
         self.current_intro_text = ""
         self.last_play = None
 
+        self.dice_anim = False
+        self.dice_timer = 0
+        self.dice_duration = 36
+        self.dice_stop_timer = 8
+        self.dice_tens = 0
+        self.dice_ones = 0
+        self.dice_roll = None
+
+        self._dice_card = None
+        self._dice_obj = None
+        self._dice_grave_xy = None
+        self._dice_play_success = None
+        self._dice_play_fail = None
+
     def reset_game(self):
         self.world_risk = 0
         self.state = GameState.PLAY
@@ -100,6 +114,19 @@ class GameEngine:
         self._pending_grave_xy = None
         self._return_anims = {}
 
+        self.dice_anim = False
+        self.dice_timer = 0
+        self.dice_tens = 0
+        self.dice_ones = 0
+        self.dice_roll = None
+        self.dice_wait_timer = 0
+        self.dice_wait_duration = 25
+        self._dice_card = None
+        self._dice_obj = None
+        self._dice_grave_xy = None
+        self._dice_play_success = None
+        self._dice_play_fail = None
+
         for c in self.cards:
             c.in_graveyard = False
             c.drag = False
@@ -121,6 +148,17 @@ class GameEngine:
         self._pending_grave_xy = None
         self._return_anims = {}
         self.last_play = None
+
+        self.dice_anim = False
+        self.dice_timer = 0
+        self.dice_tens = 0
+        self.dice_ones = 0
+        self.dice_roll = None
+        self._dice_card = None
+        self._dice_obj = None
+        self._dice_grave_xy = None
+        self._dice_play_success = None
+        self._dice_play_fail = None
 
         self.current_intro_text = self.round_scene_manager.start_round_intro()
 
@@ -199,6 +237,8 @@ class GameEngine:
             return False
         if self.anim_card is not None:
             return False
+        if self.dice_anim:
+            return False
         if card.in_graveyard:
             return False
         return True
@@ -220,52 +260,17 @@ class GameEngine:
 
         card.drag = False
 
-        roll = random.randint(1, 100)
-        success = roll <= card.success
+        self._dice_card = card
+        self._dice_obj = obj
+        self._dice_grave_xy = grave_next_xy
+        self._dice_play_success = play_success
+        self._dice_play_fail = play_fail
 
-        self.popup_success = success
-        self.popup_text = f"【{'成功' if success else '失敗'}】: 目標:{card.success} 出目:{roll} "
-        self.popup_timer = 60
-
-        base_dmg = {"hp": card.atk, "mp": card.mgc, "tp": card.tec}
-        self._apply_risk(card.cost)
-
-        if success:
-            play_success()
-            target_obj = obj
-            dmg_map = base_dmg
-            self._apply_risk(self.success_cost)
-        else:
-            play_fail()
-            alive_objs = [o for o in self.objects if o.alive]
-            target_obj = random.choice(alive_objs) if alive_objs else obj
-            status_keys = ["hp", "mp", "tp"]
-            dmg_values = [card.atk, card.mgc, card.tec]
-            dmg_map = {status_keys[i]: dmg_values[i] for i in range(3) if dmg_values[i] > 0}
-            self._apply_risk(self.fail_cost)
-
-        self.last_play = {
-            "card_name": getattr(card, "name", ""),
-            "target_name": getattr(target_obj, "name", ""),
-            "success": bool(success),
-        }
-
-        self.pending_damage = {
-            target_obj: {
-                dtype: {"start": getattr(target_obj, dtype), "damage": dmg} for dtype, dmg in dmg_map.items() if dmg > 0
-            }
-        }
-        self.damage_timer = self.damage_duration
-
-        self.anim_card = card
-        self._anim_target_obj = target_obj
-        self._pending_grave_xy = grave_next_xy
-
-        self._anim_phase = "to_obj"
-        self._anim_dur = 12
-        self._anim_t = self._anim_dur
-        self._anim_from = (int(card.x), int(card.y))
-        self._anim_to = (int(target_obj.x + target_obj.w // 2), int(target_obj.y + target_obj.h // 2))
+        self.dice_anim = True
+        self.dice_timer = self.dice_duration
+        self.dice_tens = random.randint(0, 9)
+        self.dice_ones = random.randint(0, 9)
+        self.dice_roll = None
 
     def update_timers(self):
         if self.popup_timer > 0:
@@ -297,6 +302,80 @@ class GameEngine:
 
                 if self.world_risk >= self.world_risk_max:
                     self.finish_round(reason="risk")
+
+        if self.dice_anim:
+            if self.dice_timer > 0:
+                self.dice_timer -= 1
+
+                if self.dice_timer > self.dice_stop_timer:
+                    self.dice_tens = random.randint(0, 9)
+                    self.dice_ones = random.randint(0, 9)
+                elif self.dice_timer == self.dice_stop_timer:
+                    self.dice_tens = random.randint(0, 9)
+                    self.dice_ones = random.randint(0, 9)
+
+                    roll = self.dice_tens * 10 + self.dice_ones
+                    if roll == 0:
+                        roll = 100
+                    self.dice_roll = roll
+
+                    card = self._dice_card
+                    obj = self._dice_obj
+                    success = roll <= card.success
+
+                    self.popup_success = success
+                    self.popup_text = f"【{'成功' if success else '失敗'}】: 目標:{card.success} 出目:{roll}"
+                    self.popup_timer = 60
+
+                    base_dmg = {"hp": card.atk, "mp": card.mgc, "tp": card.tec}
+                    self._apply_risk(card.cost)
+
+                    if success:
+                        self._dice_play_success()
+                        target_obj = obj
+                        dmg_map = base_dmg
+                        self._apply_risk(self.success_cost)
+                    else:
+                        self._dice_play_fail()
+                        alive_objs = [o for o in self.objects if o.alive]
+                        target_obj = random.choice(alive_objs) if alive_objs else obj
+                        status_keys = ["hp", "mp", "tp"]
+                        dmg_values = [card.atk, card.mgc, card.tec]
+                        dmg_map = {status_keys[i]: dmg_values[i] for i in range(3) if dmg_values[i] > 0}
+                        self._apply_risk(self.fail_cost)
+
+                    self.last_play = {
+                        "card_name": getattr(card, "name", ""),
+                        "target_name": getattr(target_obj, "name", ""),
+                        "success": bool(success),
+                    }
+
+                    self.pending_damage = {
+                        target_obj: {
+                            dtype: {"start": getattr(target_obj, dtype), "damage": dmg}
+                            for dtype, dmg in dmg_map.items()
+                            if dmg > 0
+                        }
+                    }
+                    self.damage_timer = self.damage_duration
+
+                    self.anim_card = card
+                    self._anim_target_obj = target_obj
+                    self._pending_grave_xy = self._dice_grave_xy
+
+                    self._anim_phase = "to_obj"
+                    self._anim_dur = 12
+                    self._anim_t = self._anim_dur
+                    self._anim_from = (int(card.x), int(card.y))
+                    self._anim_to = (int(target_obj.x + target_obj.w // 2), int(target_obj.y + target_obj.h // 2))
+
+            if self.dice_timer <= 0:
+                self.dice_anim = False
+                self._dice_card = None
+                self._dice_obj = None
+                self._dice_grave_xy = None
+                self._dice_play_success = None
+                self._dice_play_fail = None
 
         if self.recycling:
             self.recycle_timer -= 1

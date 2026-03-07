@@ -265,6 +265,13 @@ class GameLoop:
             )
 
         # ---------------------------
+        # DICE
+        # ---------------------------
+
+        if self.game.dice_anim:
+            self.renderer.dice.draw(pyxel, self.game)
+
+        # ---------------------------
         # POPUP
         # ---------------------------
 
