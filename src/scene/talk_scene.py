@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -106,10 +106,7 @@ class TalkScene(CardGameSceneBase):
             runtime.game.talk_topic_cursor = (runtime.game.talk_topic_cursor + 1) % len(unresolved)
 
         start = runtime.game.talk_topic_cursor % len(unresolved)
-        out = []
-        for i in range(3):
-            out.append(unresolved[(start + i) % len(unresolved)])
-        return out
+        return [unresolved[(start + i) % len(unresolved)] for i in range(3)]
 
     def _build_bubbles(self, runtime: SceneRuntime, target_x: int, target_y: int):
         topics = runtime.game.talk_topics or []
@@ -123,11 +120,7 @@ class TalkScene(CardGameSceneBase):
         bubbles = []
         for offset, idx in zip(offsets, indices):
             text = str(topics[idx].get("text", "話題"))
-            bubble = TopicBubble(
-                topic_index=idx,
-                name=text,
-                text=text,
-            )
+            bubble = TopicBubble(topic_index=idx, name=text, text=text)
             bubble.x = int(cx + offset - bubble.w // 2)
             bubble.y = int(base_y - (10 if offset == 0 else 0))
             bubbles.append(bubble)
@@ -143,10 +136,46 @@ class TalkScene(CardGameSceneBase):
             msg = msg[: max_chars - 3] + "..."
         text.draw_center(bubble.x + bubble.w // 2, bubble.y + bubble.h // 2 - 4, msg, 7)
 
+    def _info_modal_rect(self, runtime: SceneRuntime):
+        w = min(220, runtime.width - 28)
+        h = 84
+        x = runtime.width // 2 - w // 2
+        y = runtime.height // 2 - h // 2
+        return x, y, w, h
+
+    def _draw_info_modal(self, runtime: SceneRuntime):
+        game = runtime.game
+        if not game.info_modal_active:
+            return
+
+        x, y, w, h = self._info_modal_rect(runtime)
+        runtime.renderer.ui.draw_label_box(x, y, w, h)
+        runtime.renderer.text.draw_center(runtime.width // 2, y + 12, game.info_modal_title or "情報", 10)
+        runtime.renderer.text.draw_center(runtime.width // 2, y + 32, game.info_modal_text or "", 7)
+        runtime.renderer.ui.draw_button(x + w // 2 - 36, y + h - 24, 72, 16, "次へ")
+
+    def _handle_info_modal_click(self, runtime: SceneRuntime, mx: int, my: int):
+        game = runtime.game
+        if not game.info_modal_active:
+            return False
+        pyxel = runtime.pyxel
+        if not pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+            return True
+
+        x, y, w, h = self._info_modal_rect(runtime)
+        bx = x + w // 2 - 36
+        by = y + h - 24
+        if runtime.hit_rect(mx, my, bx, by, 72, 16):
+            game.close_info_modal()
+        return True
+
     def update(self, runtime: SceneRuntime, mx: int, my: int):
         self._ensure_anim_setup(runtime)
         if self._anim_t > 0:
             self._anim_t -= 1
+
+        if self._handle_info_modal_click(runtime, mx, my):
+            return
 
         target = runtime.game.talk_target
         if target is None or not getattr(target, "alive", False):
@@ -185,3 +214,4 @@ class TalkScene(CardGameSceneBase):
         self._draw_card_game(runtime, [])
         runtime.renderer.text.draw_center(runtime.width // 2, wy + 12, "TALK", 8)
         runtime.renderer.text.draw_center(runtime.width // 2, wy + 28, f"Target: {target_name}", 7)
+        self._draw_info_modal(runtime)

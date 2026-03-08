@@ -73,7 +73,7 @@ def create_object_pool(n: int = 1):
             scene_tp=53,
         ),
         Obj(
-            "不審者",
+            "コート",
             35 * n,
             28 * n,
             34 * n,

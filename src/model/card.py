@@ -21,3 +21,21 @@ class Card:
 
         self.w = 50
         self.h = 70
+
+    def clone(self):
+        return Card(self.name, self.success, self.atk, self.mgc, self.tec, self.cost)
+
+    def enhance(self, kind: str, amount: int):
+        k = str(kind).lower()
+        n = int(amount)
+        if k == "cost":
+            self.cost = max(-25, self.cost + n)
+            return
+        if k == "atk":
+            self.atk = max(0, self.atk + n)
+            return
+        if k == "mgc":
+            self.mgc = max(0, self.mgc + n)
+            return
+        if k == "tec":
+            self.tec = max(0, self.tec + n)

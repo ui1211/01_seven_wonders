@@ -40,3 +40,10 @@ class ResultScene(BaseScene):
             runtime.result_btn_h,
             label,
         )
+
+        if runtime.game.popup_timer > 0:
+            runtime.renderer.ui.draw_popup(
+                runtime.layout,
+                runtime.game.popup_text,
+                runtime.game.popup_success,
+            )
