@@ -14,6 +14,7 @@ class SceneStatus(IntEnum):
     SUMMARY = 2
     BATTLE = 3
     TALK = 4
+    DECK = 5
 
 
 # Backward compatibility for existing imports
@@ -36,6 +37,7 @@ class GameEngine:
         self.object_pool = object_pool
 
         self._state = SceneStatus.PLAY
+        self.return_scene_status = SceneStatus.PLAY
         self.current_scene_id = 0
 
         self.world_risk = 0
@@ -109,6 +111,7 @@ class GameEngine:
     def reset_game(self):
         self.world_risk = 0
         self.set_scene_status(SceneStatus.PLAY)
+        self.return_scene_status = SceneStatus.PLAY
         self.current_scene_id = 0
         self.round_index = 1
         self.round_results = []
@@ -155,6 +158,7 @@ class GameEngine:
 
     def start_round(self, slots):
         self.set_scene_status(SceneStatus.PLAY)
+        self.return_scene_status = SceneStatus.PLAY
         self.current_scene_id = 0
         self.popup_text = ""
         self.popup_timer = 0
@@ -616,6 +620,47 @@ class GameEngine:
 
     def is_scene_status(self, status: SceneStatus) -> bool:
         return self._state == SceneStatus(status)
+
+    def open_deck_scene(self):
+        if self.state == SceneStatus.DECK:
+            return
+        self.return_scene_status = self.state
+        self.set_scene_status(SceneStatus.DECK)
+
+    def close_deck_scene(self):
+        back = self.return_scene_status if self.return_scene_status != SceneStatus.DECK else SceneStatus.PLAY
+        self.set_scene_status(back)
+
+    def get_owned_card_rows(self):
+        buckets = {}
+        for c in [*self.hand, *self.deck, *self.graveyard]:
+            base_atk = int(getattr(c, "base_atk", c.atk))
+            base_mgc = int(getattr(c, "base_mgc", c.mgc))
+            base_tec = int(getattr(c, "base_tec", c.tec))
+            base_cost = int(getattr(c, "base_cost", c.cost))
+            base_success = int(getattr(c, "base_success", c.success))
+            key = (c.name, c.atk, c.mgc, c.tec, c.cost, c.success, base_atk, base_mgc, base_tec, base_cost, base_success)
+            buckets[key] = buckets.get(key, 0) + 1
+        rows = []
+        for (name, atk, mgc, tec, cost, success, base_atk, base_mgc, base_tec, base_cost, base_success), count in buckets.items():
+            rows.append(
+                {
+                    "name": name,
+                    "count": count,
+                    "atk": atk,
+                    "mgc": mgc,
+                    "tec": tec,
+                    "cost": cost,
+                    "success": success,
+                    "atk_growth": atk - base_atk,
+                    "mgc_growth": mgc - base_mgc,
+                    "tec_growth": tec - base_tec,
+                    "cost_growth": cost - base_cost,
+                    "success_growth": success - base_success,
+                }
+            )
+        rows.sort(key=lambda r: (r["name"], -r["success"]))
+        return rows
 
     def open_info_modal(self, title: str, text: str):
         self.info_modal_active = True

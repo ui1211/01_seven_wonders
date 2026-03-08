@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.game.game_engine import SceneStatus
 from src.scene.base_scene import SceneRuntime
 from src.scene.battle_scene import BattleScene
+from src.scene.deck_scene import DeckScene
 from src.scene.play_scene import PlayScene
 from src.scene.result_scene import ResultScene
 from src.scene.summary_scene import SummaryScene
@@ -21,6 +22,7 @@ class SceneRouter:
                 SceneStatus.PLAY: PlayScene(),
                 SceneStatus.BATTLE: BattleScene(),
                 SceneStatus.TALK: TalkScene(),
+                SceneStatus.DECK: DeckScene(),
                 SceneStatus.RESULT: ResultScene(),
                 SceneStatus.SUMMARY: SummaryScene(),
             }

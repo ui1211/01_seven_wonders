@@ -4,6 +4,14 @@ from src.scene.base_scene import BaseScene, SceneRuntime
 
 
 class CardGameSceneBase(BaseScene):
+    @staticmethod
+    def _deck_list_button_rect(runtime: SceneRuntime):
+        btn_w = 58
+        btn_h = 14
+        btn_x = runtime.width - btn_w - 8
+        btn_y = 8
+        return btn_x, btn_y, btn_w, btn_h
+
     def _update_card_game(self, runtime: SceneRuntime, mx: int, my: int, target_objects: list):
         pyxel = runtime.pyxel
         game = runtime.game
@@ -36,6 +44,11 @@ class CardGameSceneBase(BaseScene):
         deck_x, deck_y, w, h = runtime.deck_rect()
         if runtime.hit_rect(mx, my, deck_x, deck_y, w, h):
             game.draw_one()
+            return
+
+        bx, by, bw, bh = self._deck_list_button_rect(runtime)
+        if runtime.hit_rect(mx, my, bx, by, bw, bh):
+            game.open_deck_scene()
             return
 
         runtime.input_controller.on_mouse_down(
@@ -115,6 +128,9 @@ class CardGameSceneBase(BaseScene):
 
             if len(game.hand) < game.max_hand_size and (pyxel.frame_count // 30) % 2 == 0:
                 renderer.text.draw_center(int(deck_x + w // 2.5), deck_y - 12, "DRAW ME!", 6)
+
+        bx, by, bw, bh = self._deck_list_button_rect(runtime)
+        renderer.ui.draw_button(bx, by, bw, bh, "DECK")
 
         # Top-most overlay layer
         if game.popup_timer > 0:
