@@ -10,6 +10,11 @@ class Card:
         self.mgc = int(mgc)
         self.tec = int(tec)
         self.cost = int(cost)
+        self.base_success = int(success)
+        self.base_atk = int(atk)
+        self.base_mgc = int(mgc)
+        self.base_tec = int(tec)
+        self.base_cost = int(cost)
 
         self.in_graveyard = False
         self.drag = False
@@ -21,3 +26,27 @@ class Card:
 
         self.w = 50
         self.h = 70
+
+    def clone(self):
+        c = Card(self.name, self.success, self.atk, self.mgc, self.tec, self.cost)
+        c.base_success = int(getattr(self, "base_success", self.success))
+        c.base_atk = int(getattr(self, "base_atk", self.atk))
+        c.base_mgc = int(getattr(self, "base_mgc", self.mgc))
+        c.base_tec = int(getattr(self, "base_tec", self.tec))
+        c.base_cost = int(getattr(self, "base_cost", self.cost))
+        return c
+
+    def enhance(self, kind: str, amount: int):
+        k = str(kind).lower()
+        n = int(amount)
+        if k == "cost":
+            self.cost = max(-25, self.cost + n)
+            return
+        if k == "atk":
+            self.atk = max(0, self.atk + n)
+            return
+        if k == "mgc":
+            self.mgc = max(0, self.mgc + n)
+            return
+        if k == "tec":
+            self.tec = max(0, self.tec + n)
