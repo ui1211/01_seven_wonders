@@ -1,16 +1,24 @@
-# src/game/game_engine.py
+﻿# src/game/game_engine.py
 from __future__ import annotations
 
 import random
+from enum import IntEnum
 
-from src.data.cards import create_cards
+from src.data.cards import create_cards, create_reward_cards, create_topic_card
 from src.round_scene_manager import RoundSceneManager
 
 
-class GameState:
+class SceneStatus(IntEnum):
     PLAY = 0
     RESULT = 1
     SUMMARY = 2
+    BATTLE = 3
+    TALK = 4
+    DECK = 5
+
+
+# Backward compatibility for existing imports
+GameState = SceneStatus
 
 
 def _smoothstep(t: float) -> float:
@@ -25,9 +33,11 @@ class GameEngine:
     def __init__(self, scene_manager, object_pool):
         self.scene_manager = scene_manager
         self.cards = create_cards()
+        self.reward_cards = create_reward_cards()
         self.object_pool = object_pool
 
-        self.state = GameState.PLAY
+        self._state = SceneStatus.PLAY
+        self.return_scene_status = SceneStatus.PLAY
         self.current_scene_id = 0
 
         self.world_risk = 0
@@ -76,6 +86,13 @@ class GameEngine:
         self.round_scene_manager = RoundSceneManager()
         self.current_intro_text = ""
         self.last_play = None
+        self.battle_enemy = None
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
+        self.info_modal_active = False
+        self.info_modal_title = ""
+        self.info_modal_text = ""
 
         self.dice_anim = False
         self.dice_timer = 0
@@ -93,7 +110,8 @@ class GameEngine:
 
     def reset_game(self):
         self.world_risk = 0
-        self.state = GameState.PLAY
+        self.set_scene_status(SceneStatus.PLAY)
+        self.return_scene_status = SceneStatus.PLAY
         self.current_scene_id = 0
         self.round_index = 1
         self.round_results = []
@@ -103,6 +121,13 @@ class GameEngine:
         self.popup_text = ""
         self.popup_timer = 0
         self.popup_success = True
+        self.battle_enemy = None
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
+        self.info_modal_active = False
+        self.info_modal_title = ""
+        self.info_modal_text = ""
 
         self.anim_card = None
         self._anim_phase = None
@@ -132,7 +157,8 @@ class GameEngine:
             c.drag = False
 
     def start_round(self, slots):
-        self.state = GameState.PLAY
+        self.set_scene_status(SceneStatus.PLAY)
+        self.return_scene_status = SceneStatus.PLAY
         self.current_scene_id = 0
         self.popup_text = ""
         self.popup_timer = 0
@@ -148,6 +174,13 @@ class GameEngine:
         self._pending_grave_xy = None
         self._return_anims = {}
         self.last_play = None
+        self.battle_enemy = None
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
+        self.info_modal_active = False
+        self.info_modal_title = ""
+        self.info_modal_text = ""
 
         self.dice_anim = False
         self.dice_timer = 0
@@ -225,13 +258,18 @@ class GameEngine:
             scene_hp=o.scene_map.get("hp"),
             scene_mp=o.scene_map.get("mp"),
             scene_tp=o.scene_map.get("tp"),
+            is_enemy=o.is_enemy,
+            can_talk=o.can_talk,
+            topics=o.topics,
         )
 
     def is_animating(self, card) -> bool:
         return self.anim_card == card
 
     def can_play_card(self, card) -> bool:
-        if self.state != GameState.PLAY:
+        if self.state not in (SceneStatus.PLAY, SceneStatus.BATTLE, SceneStatus.TALK):
+            return False
+        if self.info_modal_active:
             return False
         if self.damage_timer > 0:
             return False
@@ -276,7 +314,7 @@ class GameEngine:
         if self.popup_timer > 0:
             self.popup_timer -= 1
 
-        if self.state == GameState.RESULT and self.round_result_timer > 0:
+        if self.state == SceneStatus.RESULT and self.round_result_timer > 0:
             self.round_result_timer -= 1
 
         if self.damage_timer > 0:
@@ -321,10 +359,11 @@ class GameEngine:
 
                     card = self._dice_card
                     obj = self._dice_obj
+                    start_state = self.state
                     success = roll <= card.success
 
                     self.popup_success = success
-                    self.popup_text = f"【{'成功' if success else '失敗'}】: 目標:{card.success} 出目:{roll}"
+                    self.popup_text = f"{'成功' if success else '失敗'} 目標:{card.success} 出目:{roll}"
                     self.popup_timer = 60
 
                     base_dmg = {"hp": card.atk, "mp": card.mgc, "tp": card.tec}
@@ -344,20 +383,46 @@ class GameEngine:
                         dmg_map = {status_keys[i]: dmg_values[i] for i in range(3) if dmg_values[i] > 0}
                         self._apply_risk(self.fail_cost)
 
+                    # TALK scene uses topic objects; only TEC success resolves topic,
+                    # and target object's TEC is reduced on both success/fail.
+                    if self.state == SceneStatus.TALK and getattr(obj, "is_talk_topic", False):
+                        tec_damage = max(0, int(card.tec))
+                        if tec_damage <= 0:
+                            tec_damage = max(0, int(card.atk), int(card.mgc))
+                        talk_target = self.talk_target if self.talk_target is not None else obj
+                        topic_index = int(getattr(obj, "topic_index", -1))
+                        success = bool(success and int(card.tec) > 0)
+                        self.popup_success = success
+
+                        if success and 0 <= topic_index < len(self.talk_topics):
+                            self.talk_topics[topic_index]["resolved"] = True
+                            topic_text = str(self.talk_topics[topic_index].get("text", "話題"))
+                            topic_card = create_topic_card(topic_text)
+                            where, granted = self._grant_card(topic_card, prefer_hand=True)
+                            info = f"{topic_text}の情報を獲得。{granted.name}を{('手札' if where == 'hand' else '山札')}に追加。"
+                            self.open_info_modal("情報獲得", info)
+
+                        target_obj = talk_target
+                        dmg_map = {"tp": tec_damage} if tec_damage > 0 else {}
+
                     self.last_play = {
                         "card_name": getattr(card, "name", ""),
                         "target_name": getattr(target_obj, "name", ""),
                         "success": bool(success),
                     }
 
-                    self.pending_damage = {
-                        target_obj: {
-                            dtype: {"start": getattr(target_obj, dtype), "damage": dmg}
-                            for dtype, dmg in dmg_map.items()
-                            if dmg > 0
+                    self.pending_damage = (
+                        {
+                            target_obj: {
+                                dtype: {"start": getattr(target_obj, dtype), "damage": dmg}
+                                for dtype, dmg in dmg_map.items()
+                                if dmg > 0
+                            }
                         }
-                    }
-                    self.damage_timer = self.damage_duration
+                        if dmg_map
+                        else {}
+                    )
+                    self.damage_timer = self.damage_duration if self.pending_damage else 0
 
                     self.anim_card = card
                     self._anim_target_obj = target_obj
@@ -368,6 +433,27 @@ class GameEngine:
                     self._anim_t = self._anim_dur
                     self._anim_from = (int(card.x), int(card.y))
                     self._anim_to = (int(target_obj.x + target_obj.w // 2), int(target_obj.y + target_obj.h // 2))
+
+                    # Enter battle immediately when ATK damage is applied to an enemy.
+                    if (
+                        self.state == SceneStatus.PLAY
+                        and dmg_map.get("hp", 0) > 0
+                        and getattr(target_obj, "is_enemy", False)
+                    ):
+                        self.enter_battle(target_obj)
+                    elif (
+                        self.state == SceneStatus.PLAY
+                        and dmg_map.get("tp", 0) > 0
+                        and getattr(target_obj, "can_talk", False)
+                    ):
+                        self.enter_talk(target_obj)
+
+                    if start_state == SceneStatus.BATTLE:
+                        counter = random.randint(4, 12)
+                        self._apply_risk(counter)
+                        self.popup_text = f"{self.popup_text} / 反撃! 危険度+{counter}"
+                        self.popup_success = False
+                        self.popup_timer = 70
 
             if self.dice_timer <= 0:
                 self.dice_anim = False
@@ -463,7 +549,7 @@ class GameEngine:
             self._pending_grave_xy = grave_next_xy
 
     def request_next(self):
-        if self.state != GameState.RESULT:
+        if self.state != SceneStatus.RESULT:
             return
         if self.round_result_timer > 0:
             return
@@ -472,17 +558,22 @@ class GameEngine:
             self.round_index += 1
             return "next_round"
 
-        self.state = GameState.SUMMARY
+        self.set_scene_status(SceneStatus.SUMMARY)
         return "to_summary"
 
     def resolve_object(self, obj, dmg_type):
+        if self.state == SceneStatus.TALK and obj is self.talk_target and dmg_type == "tp":
+            self._grant_random_reward(obj, dmg_type)
+            self.finish_talk()
+            return
+        self._grant_random_reward(obj, dmg_type)
         next_scene = obj.scene_map.get(dmg_type)
         if next_scene is not None:
             self.current_scene_id = next_scene
             self.finish_round(reason="clear")
 
     def finish_round(self, reason: str):
-        if self.state in (GameState.RESULT, GameState.SUMMARY):
+        if self.state in (SceneStatus.RESULT, SceneStatus.SUMMARY):
             return
 
         play = self.last_play or {"card_name": "", "target_name": "", "success": None}
@@ -498,7 +589,7 @@ class GameEngine:
                     "kind": "risk",
                 }
             )
-            self.state = GameState.SUMMARY
+            self.set_scene_status(SceneStatus.SUMMARY)
             return
 
         result_text = self.scene_manager.get_text(self.current_scene_id)
@@ -513,8 +604,200 @@ class GameEngine:
             }
         )
 
-        self.state = GameState.RESULT
+        self.set_scene_status(SceneStatus.RESULT)
         self.round_result_timer = 15
+
+    @property
+    def state(self) -> SceneStatus:
+        return self._state
+
+    @state.setter
+    def state(self, value):
+        self._state = SceneStatus(value)
+
+    def set_scene_status(self, status: SceneStatus):
+        self._state = SceneStatus(status)
+
+    def is_scene_status(self, status: SceneStatus) -> bool:
+        return self._state == SceneStatus(status)
+
+    def open_deck_scene(self):
+        if self.state == SceneStatus.DECK:
+            return
+        self.return_scene_status = self.state
+        self.set_scene_status(SceneStatus.DECK)
+
+    def close_deck_scene(self):
+        back = self.return_scene_status if self.return_scene_status != SceneStatus.DECK else SceneStatus.PLAY
+        self.set_scene_status(back)
+
+    def get_owned_card_rows(self):
+        buckets = {}
+        for c in [*self.hand, *self.deck, *self.graveyard]:
+            base_atk = int(getattr(c, "base_atk", c.atk))
+            base_mgc = int(getattr(c, "base_mgc", c.mgc))
+            base_tec = int(getattr(c, "base_tec", c.tec))
+            base_cost = int(getattr(c, "base_cost", c.cost))
+            base_success = int(getattr(c, "base_success", c.success))
+            key = (c.name, c.atk, c.mgc, c.tec, c.cost, c.success, base_atk, base_mgc, base_tec, base_cost, base_success)
+            buckets[key] = buckets.get(key, 0) + 1
+        rows = []
+        for (name, atk, mgc, tec, cost, success, base_atk, base_mgc, base_tec, base_cost, base_success), count in buckets.items():
+            rows.append(
+                {
+                    "name": name,
+                    "count": count,
+                    "atk": atk,
+                    "mgc": mgc,
+                    "tec": tec,
+                    "cost": cost,
+                    "success": success,
+                    "atk_growth": atk - base_atk,
+                    "mgc_growth": mgc - base_mgc,
+                    "tec_growth": tec - base_tec,
+                    "cost_growth": cost - base_cost,
+                    "success_growth": success - base_success,
+                }
+            )
+        rows.sort(key=lambda r: (r["name"], -r["success"]))
+        return rows
+
+    def open_info_modal(self, title: str, text: str):
+        self.info_modal_active = True
+        self.info_modal_title = str(title)
+        self.info_modal_text = str(text)
+
+    def close_info_modal(self):
+        self.info_modal_active = False
+        self.info_modal_title = ""
+        self.info_modal_text = ""
+
+    def _clone_card(self, card):
+        if hasattr(card, "clone"):
+            return card.clone()
+        from src.model.card import Card
+
+        return Card(card.name, card.success, card.atk, card.mgc, card.tec, card.cost)
+
+    def _grant_card(self, card, prefer_hand: bool = True):
+        c = self._clone_card(card)
+        c.in_graveyard = False
+        c.drag = False
+        if prefer_hand and len(self.hand) < self.max_hand_size:
+            self.hand.append(c)
+            return "hand", c
+        self.deck.append(c)
+        random.shuffle(self.deck)
+        return "deck", c
+
+    def _enhance_random_card(self):
+        pool = [c for c in [*self.hand, *self.deck] if not c.in_graveyard]
+        if not pool:
+            return None, ""
+        target = random.choice(pool)
+        mode = random.choice(["atk", "mgc", "tec", "cost"])
+        if mode == "cost":
+            before = target.cost
+            target.enhance("cost", -2)
+            return target, f"{target.name}: COST {before}->{target.cost}"
+        before = getattr(target, mode)
+        target.enhance(mode, 3)
+        return target, f"{target.name}: {mode.upper()} {before}->{before + 3}"
+
+    def _grant_random_reward(self, defeated_obj, by_type: str):
+        reward_kind = random.choice(["card", "enhance", "draw"])
+        if reward_kind == "card":
+            bonus = random.choice(self.reward_cards)
+            where, granted = self._grant_card(bonus, prefer_hand=True)
+            self.popup_text = f"報酬: {granted.name} を{('手札' if where == 'hand' else '山札')}に追加"
+            self.popup_success = True
+            self.popup_timer = 70
+            return
+        if reward_kind == "enhance":
+            _target, msg = self._enhance_random_card()
+            if msg:
+                self.popup_text = f"報酬: 強化! {msg}"
+            else:
+                self.popup_text = "報酬: 強化対象なし"
+            self.popup_success = True
+            self.popup_timer = 70
+            return
+
+        draw_n = 2 if by_type == "tp" else 1
+        drawn = 0
+        for _ in range(draw_n):
+            if self._draw_one_reward():
+                drawn += 1
+        self.popup_text = f"報酬: {drawn}枚ドロー"
+        self.popup_success = True
+        self.popup_timer = 70
+
+    def _draw_one_reward(self):
+        if len(self.hand) >= self.max_hand_size:
+            return False
+        if not self.deck:
+            if not self.graveyard:
+                return False
+            self.deck = self.graveyard
+            self.graveyard = []
+            random.shuffle(self.deck)
+        if not self.deck:
+            return False
+        card = self.deck.pop()
+        card.in_graveyard = False
+        card.drag = False
+        self.hand.append(card)
+        return True
+
+    def enter_battle(self, obj):
+        if obj is None:
+            return
+        if not getattr(obj, "alive", False):
+            return
+        if not getattr(obj, "is_enemy", False):
+            return
+        self.battle_enemy = obj
+        self.set_scene_status(SceneStatus.BATTLE)
+
+    def exit_battle(self):
+        self.battle_enemy = None
+        self.set_scene_status(SceneStatus.PLAY)
+
+    def finish_battle(self):
+        enemy = self.battle_enemy
+        if enemy is not None:
+            next_scene = enemy.scene_map.get("hp")
+            if next_scene is not None:
+                self.current_scene_id = next_scene
+        self.battle_enemy = None
+        self.finish_round(reason="clear")
+
+    def enter_talk(self, obj):
+        if obj is None:
+            return
+        if not getattr(obj, "alive", False):
+            return
+        if not getattr(obj, "can_talk", False):
+            return
+
+        self.talk_target = obj
+        self.talk_topic_cursor = 0
+        topics = [str(t) for t in getattr(obj, "topics", []) if str(t).strip()]
+        if not topics:
+            topics = ["様子を伺う", "事情を聞く", "落ち着かせる"]
+        self.talk_topics = [{"text": t, "resolved": False} for t in topics]
+        self.set_scene_status(SceneStatus.TALK)
+
+    def finish_talk(self):
+        target = self.talk_target
+        if target is not None:
+            next_scene = target.scene_map.get("tp")
+            if next_scene is not None:
+                self.current_scene_id = next_scene
+        self.talk_target = None
+        self.talk_topics = []
+        self.talk_topic_cursor = 0
+        self.finish_round(reason="clear")
 
     def _apply_risk(self, amount: int):
         self.world_risk += amount
@@ -524,7 +807,7 @@ class GameEngine:
             self.finish_round(reason="risk")
 
     def build_story_text(self):
-        connectors = ["その後", "やがて", "次に", "さらに", "そして"]
+        connectors = ["そして", "やがて", "次に", "さらに", "その後"]
 
         parts = []
         for i, r in enumerate(self.round_results):
@@ -540,7 +823,7 @@ class GameEngine:
             if i == 0:
                 prefix = ""
             else:
-                prefix = connectors[(i - 1) % len(connectors)] + "、"
+                prefix = connectors[(i - 1) % len(connectors)] + "。"
 
             segs = []
 
@@ -553,3 +836,5 @@ class GameEngine:
             parts.append(prefix + "".join(segs))
 
         return "".join(parts)
+
+
