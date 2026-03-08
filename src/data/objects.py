@@ -1,13 +1,13 @@
 from src.model.object import Obj
 
 
-def create_object_pool(n: int = 2):
+def create_object_pool(n: int = 1):
     return [
         Obj(
             "扉",
-            35 * n,
-            10 * n,
-            5 * n,
+            36 * n,
+            30 * n,
+            28 * n,
             0,
             0,
             "./assets/images/door.png",
@@ -17,9 +17,9 @@ def create_object_pool(n: int = 2):
         ),
         Obj(
             "影",
-            20 * n,
-            25 * n,
-            15 * n,
+            34 * n,
+            32 * n,
+            30 * n,
             0,
             0,
             "./assets/images/akuma_shadow.png",
@@ -30,9 +30,9 @@ def create_object_pool(n: int = 2):
         ),
         Obj(
             "住人",
+            33 * n,
+            31 * n,
             30 * n,
-            15 * n,
-            15 * n,
             0,
             0,
             "./assets/images/sleep_nezou_bad_onaka_man.png",
@@ -50,9 +50,9 @@ def create_object_pool(n: int = 2):
         ),
         Obj(
             "箱",
-            15 * n,
-            35 * n,
-            10 * n,
+            30 * n,
+            36 * n,
+            30 * n,
             0,
             0,
             "./assets/images/iryou_kusuribako2.png",
@@ -61,10 +61,10 @@ def create_object_pool(n: int = 2):
             scene_tp=43,
         ),
         Obj(
-            "銃",
-            10 * n,
-            40 * n,
-            10 * n,
+            "武器",
+            29 * n,
+            38 * n,
+            30 * n,
             0,
             0,
             "./assets/images/starter_starting_pistol.png",
@@ -75,8 +75,8 @@ def create_object_pool(n: int = 2):
         Obj(
             "不審者",
             35 * n,
-            5 * n,
-            25 * n,
+            28 * n,
+            34 * n,
             0,
             0,
             "./assets/images/fashion_parka_dark.png",
